@@ -585,14 +585,16 @@ func getTargetPort(service *corev1.Service, port Port) namedPort {
 }
 
 func diffPods(oldPods, newPods PodSet) (add, remove PodSet) {
-	// TODO: this detects pods which have been added or removed, but does not
-	// detect pods which have been modified.  A modified pod should trigger
-	// an add of the new version.
 	addPods := make(map[PodID]Address)
 	removePods := make(map[PodID]Address)
-	for id, pod := range newPods.Pods {
-		if _, ok := oldPods.Pods[id]; !ok {
-			addPods[id] = pod
+	for id, newPod := range newPods.Pods {
+		if oldPod, ok := oldPods.Pods[id]; ok {
+			// The pod exists. Checking whether it has been modified
+			if oldPod.Pod.ResourceVersion != newPod.Pod.ResourceVersion {
+				addPods[id] = newPod
+			}
+		} else {
+			addPods[id] = newPod
 		}
 	}
 	for id, pod := range oldPods.Pods {
